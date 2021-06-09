@@ -1,3 +1,5 @@
+# **This is a fork of the [original Bitbucket repository](https://bitbucket.org/xoseperez/nofuss)**
+
 # NoFUSS
 
 NoFUSS is a **Firmware Update Server for ESP8266** modules. It defines a protocol and its implementation as a PHP service and a C++ client library so your devices can check for updates, download them and flash them autonomously.

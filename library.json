@@ -4,9 +4,9 @@
     "description": "Automatic OTA library for ESP8266",
     "repository": {
         "type": "git",
-        "url": "https://bitbucket.org/xoseperez/nofuss.git"
+        "url": "https://github.com/mcspr/nofuss.git"
     },
-    "version": "0.3.0",
+    "version": "0.4.0",
     "license": "GPL-3.0",
     "exclude": "tests",
     "frameworks": "arduino",
@@ -14,12 +14,20 @@
     "dependencies": [
         { "name": "ArduinoJson", "version": "5.13.4" }
     ],
-    "authors": {
-        "name": "Xose Perez",
-        "email": "xose.perez@gmail.com",
-        "url": "http://tinkerman.cat",
-        "maintainer": true
-    },
+    "authors": [
+        {
+            "name": "Xose Perez",
+            "email": "xose.perez@gmail.com",
+            "url": "http://tinkerman.cat",
+            "maintainer": false
+        },
+        {
+            "name": "Prokhorov Max",
+            "email": "prokhorov.max@outlook.com",
+            "url": "http://github.com/mcspr",
+            "maintainer": true
+        }
+    ],
     "examples": [
         "examples/*/*.ino"
     ]

@@ -21,7 +21,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include "NoFUSSClient.h"
-#include "credentials.h"
+
+#ifndef NOFUSS_SERVER
+#define NOFUSS_SERVER   "http://192.168.1.100/"
+#endif
+
+#ifndef WIFI_SSID
+#define WIFI_SSID "test"
+#endif
+
+#ifndef WIFI_PASS
+#define WIFI_PASS "testtest"
+#endif
 
 // -----------------------------------------------------------------------------
 // Configuration

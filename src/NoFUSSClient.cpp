@@ -1,6 +1,6 @@
 /*
 
-NOFUSS Client 0.2.5
+NOFUSS Client
 Copyright (C) 2016-2017 by Xose Pérez <xose dot perez at gmail dot com>
 
 This program is free software: you can redistribute it and/or modify
@@ -19,9 +19,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "NoFUSSClient.h"
-#include <functional>
+
 #include <ArduinoJson.h>
 #include <ESP8266httpUpdate.h>
+
+#include <functional>
+
+const char NoFUSSUserAgent[] PROGMEM = "NoFussClient";
+constexpr unsigned long NoFUSSTimeout { 1000ul };
+
+namespace {
+String normalizeUrl(const String& server, const String& path) {
+    if (path.startsWith("http")) {
+        return path;
+    }
+
+    return server + '/' + path;
+}
+
+} // namespace
 
 void NoFUSSClientClass::setServer(String server) {
     _server = server;
@@ -71,17 +87,14 @@ String NoFUSSClientClass::_getPayload() {
 
     String payload = "";
 
+    WiFiClient client;
     HTTPClient http;
-    #ifdef HTTPUPDATE_1_2_COMPATIBLE
-        http.begin((char *) _server.c_str());
-    #else
-        WiFiClient client;
-        http.begin(client, (char *) _server.c_str());
-    #endif
+    http.begin(client, _server.c_str());
+
     http.useHTTP10(true);
     http.setReuse(false);
-    http.setTimeout(HTTP_TIMEOUT);
-    http.setUserAgent(F(HTTP_USERAGENT));
+    http.setTimeout(NoFUSSTimeout);
+    http.setUserAgent(NoFUSSUserAgent);
     http.addHeader(F("X-ESP8266-MAC"), WiFi.macAddress());
     http.addHeader(F("X-ESP8266-DEVICE"), _device);
     http.addHeader(F("X-ESP8266-VERSION"), _version);
@@ -124,76 +137,62 @@ bool NoFUSSClientClass::_checkUpdates() {
     }
 
     _newVersion = response.get<String>("version");
-    _newFileSystem = response.get<String>("spiffs");
     _newFirmware = response.get<String>("firmware");
+
+    if (response.containsKey("fs")) {
+        _newFileSystem = response.get<String>("fs");
+    } else if (response.containsKey("spiffs")) {
+        _newFileSystem = response.get<String>("spiffs");
+    }
 
     _doCallback(NOFUSS_UPDATING);
     return true;
 
 }
 
+bool NoFUSSClientClass::_doUpdateCallbacks(t_httpUpdate_return result, nofuss_t success, nofuss_t error) {
+    if (result == HTTP_UPDATE_OK) {
+        _doCallback(success);
+        return true;
+    }
+
+    _errorNumber = ESPhttpUpdate.getLastError();
+    _errorString = ESPhttpUpdate.getLastErrorString();
+    _doCallback(error);
+
+    return false;
+}
+
 void NoFUSSClientClass::_doUpdate() {
 
-    char url[100];
     bool error = false;
-    uint8_t updates = 0;
+    int updates = 0;
 
     ESPhttpUpdate.rebootOnUpdate(false);
 
     if (_newFileSystem.length() > 0) {
+        auto url = normalizeUrl(_server, _newFileSystem);
 
-        // Update SPIFFS
-        if (_newFileSystem.startsWith("http")) {
-            sprintf(url, "%s", _newFileSystem.c_str());
+        WiFiClient client;
+        t_httpUpdate_return ret = ESPhttpUpdate.updateFS(client, url);
+        if (_doUpdateCallbacks(ret, NOFUSS_FILESYSTEM_UPDATED, NOFUSS_FILESYSTEM_UPDATE_ERROR)) {
+            ++updates;
         } else {
-            sprintf(url, "%s/%s", _server.c_str(), _newFileSystem.c_str());
-        }
-
-        #ifdef HTTPUPDATE_1_2_COMPATIBLE
-            t_httpUpdate_return ret = ESPhttpUpdate.updateSpiffs(url);
-        #else
-            WiFiClient client;
-            t_httpUpdate_return ret = ESPhttpUpdate.updateSpiffs(client, url);
-        #endif
-        
-        if (ret == HTTP_UPDATE_FAILED) {
             error = true;
-            _errorNumber = ESPhttpUpdate.getLastError();
-            _errorString = ESPhttpUpdate.getLastErrorString();
-            _doCallback(NOFUSS_FILESYSTEM_UPDATE_ERROR);
-        } else if (ret == HTTP_UPDATE_OK) {
-            updates++;
-            _doCallback(NOFUSS_FILESYSTEM_UPDATED);
         }
-
     }
 
     if (!error && (_newFirmware.length() > 0)) {
+        auto url = normalizeUrl(_server, _newFirmware);
 
-        // Update binary
-        if (_newFirmware.startsWith("http")) {
-            sprintf(url, "%s", _newFirmware.c_str());
+        WiFiClient client;
+        t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
+
+        if (_doUpdateCallbacks(ret, NOFUSS_FIRMWARE_UPDATED, NOFUSS_FIRMWARE_UPDATE_ERROR)) {
+            ++updates;
         } else {
-            sprintf(url, "%s/%s", _server.c_str(), _newFirmware.c_str());
-        }
-
-        #ifdef HTTPUPDATE_1_2_COMPATIBLE
-            t_httpUpdate_return ret = ESPhttpUpdate.update(url);
-        #else
-            WiFiClient client;
-            t_httpUpdate_return ret = ESPhttpUpdate.update(client, url);
-        #endif
-
-        if (ret == HTTP_UPDATE_FAILED) {
             error = true;
-            _errorNumber = ESPhttpUpdate.getLastError();
-            _errorString = ESPhttpUpdate.getLastErrorString();
-            _doCallback(NOFUSS_FIRMWARE_UPDATE_ERROR);
-        } else if (ret == HTTP_UPDATE_OK) {
-            updates++;
-            _doCallback(NOFUSS_FIRMWARE_UPDATED);
         }
-
     }
 
     if (!error && (updates > 0)) {
