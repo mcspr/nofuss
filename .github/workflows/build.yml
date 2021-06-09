@@ -14,7 +14,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ hashFiles("library.*") }}
+          key: ${{ runner.os }}-${{ hashFiles('library.properties', 'library.json') }}
       - run: |
           pip install -U platformio
           platformio upgrade --dev
