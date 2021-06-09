@@ -12,7 +12,7 @@
     "frameworks": "arduino",
     "platforms": "espressif8266",
     "dependencies": [
-        { "name": "ArduinoJson", "version": "5.13.4" }
+        { "name": "ArduinoJson", "version": "^5.13.4" }
     ],
     "authors": [
         {
