@@ -4,20 +4,21 @@ on:
       - "master"
 
 jobs:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-    - uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-${{ hashFiles("library.*") }}
-    - run: |
-        pip install -U platformio
-        platformio upgrade --dev
-    - run: |
-        platformio ci -l . -b nodemcuv2 \
-          -O "lib_deps = bblanchon/ArduinoJson@5.13.4" \
-          ./examples/basic/
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ hashFiles("library.*") }}
+      - run: |
+          pip install -U platformio
+          platformio upgrade --dev
+      - run: |
+          platformio ci -l . -b nodemcuv2 \
+            -O "lib_deps = bblanchon/ArduinoJson@^5.13.4" \
+            ./examples/basic/
